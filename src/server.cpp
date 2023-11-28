@@ -47,7 +47,6 @@ int main(){
     //accept connection, spawn nee thread with that 
     int newSocket = accept(server, (struct sockaddr*) &address, &addrlen);
     std::cout << "wow a new connection" << std::endl;
-    
     char line[1024];
     std::string name;
     name.resize(1024);
@@ -55,8 +54,10 @@ int main(){
     while(true){
         read(newSocket, line, 1024 - 1);
         std::cout << "sending: " << line << std::endl;
+        auto now = std::chrono::system_clock::now();
+        std::time_t t= std::chrono::system_clock::to_time_t(now); 
         std::stringstream toSend;
-        toSend << &name[0] << ": " << line;
+        toSend << t << ' ' << &name[0] << ": " << line;
         send(newSocket, toSend.str().c_str(), strlen(toSend.str().c_str()), 0);
         memset(line, 0, sizeof(line));
     }

@@ -4,17 +4,21 @@
 #include <thread>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <time.h>
+#include <iomanip>
+#include <sstream>
 
 #define PORT 8080
 
 void readFromSocket(int socket);
 void writeToSocket(int socket);
-
+std::string formatMessage(const std::string& message);
+std::string getDateString(const std::string& timestamp);
 
 int main() {
     std::string userName;
+    std::cout << "Enter a username: ";
     std::getline(std::cin, userName);
-    std::cout << userName << std::endl;
     char buffer[1024] = {0};
     int client = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in serverAddress;  
@@ -43,13 +47,9 @@ int main() {
 
     readThread.join();
     writeThread.join();
-    // bind my socket
-    //
-    // create send and recieve threads
-    //
     close(client);
 
-     return 0;
+    return 0;
 }
 
 
@@ -57,7 +57,7 @@ void readFromSocket(int socket){
     char line[1024] = {0};
     while(true){
         read(socket, line, 1024 - 1);
-        std::cout << line << std::endl;
+        std::cout << formatMessage(line) << std::endl;
         memset(line, 0, sizeof(line));
     }
 }
@@ -69,4 +69,21 @@ void writeToSocket(int socket){
         std::cin.clear();
         std::cout << "\033[A";
     }
+}
+std::string formatMessage(const std::string& message){
+    int pos = message.find(' ');
+    
+    std::string newMessage = message.substr(pos);
+    std::string timestamp = message.substr(0, pos);
+    std::string dateString = getDateString(timestamp);
+    dateString.erase(std::remove(dateString.begin(), dateString.end(), '\n'), dateString.end());
+    std::stringstream ss;
+    ss<< dateString << newMessage;
+    return ss.str();
+}
+
+std::string getDateString(const std::string& timestamp){
+    time_t t(atoll(timestamp.c_str()));
+    auto s = localtime(&t);
+    return asctime(s);
 }
