@@ -86,6 +86,7 @@ void writeToSockets(const std::vector<int>& sockets){
 
         std::vector<std::thread> writers;
         messageQueueLock.lock();
+        socketLock.lock();
         for(const int socket : sockets){
             writers.push_back(std::thread(sendToSocket, socket));
         }
@@ -93,13 +94,14 @@ void writeToSockets(const std::vector<int>& sockets){
             writer.join();
         }
         messages.clear();
+        socketLock.unlock();
         messageQueueLock.unlock();
     }
 }
 
 void sendToSocket(const int socket){
         for(std::string& message : messages){
-            send(socket, message.c_str(), 1024 - 1, 0); 
+            send(socket, message.c_str(), strlen(message.c_str()), 0); 
         }
 }
 
@@ -115,6 +117,15 @@ void readFromUser(const std::string& userName, std::vector<int>& sockets, const 
         while (true){
             char line[1024];
             read(socket, line, 1024 - 1);
+            if(strcmp(line ,"exit") == 0){
+                socketLock.lock();
+                auto it = std::find(sockets.begin(), sockets.end(), socket);
+                send(socket, "exit", 4, 0);
+                sockets.erase(it);
+                socketLock.unlock();
+                std::cout << userName << " left the room" << std::endl;
+                break;
+            }
             std::cout << "sending: " << line << std::endl;
             auto now = std::chrono::system_clock::now();
             std::time_t t= std::chrono::system_clock::to_time_t(now); 

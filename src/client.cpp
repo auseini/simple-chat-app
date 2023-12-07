@@ -7,6 +7,7 @@
 #include <time.h>
 #include <iomanip>
 #include <sstream>
+#include <mutex>
 
 #define PORT 8080
 
@@ -14,6 +15,8 @@ void readFromSocket(int socket);
 void writeToSocket(int socket);
 std::string formatMessage(const std::string& message);
 std::string getDateString(const std::string& timestamp);
+bool shouldClose = false;
+std::mutex lock;
 
 int main() {
     std::string userName;
@@ -55,19 +58,26 @@ int main() {
 
 void readFromSocket(int socket){
     char line[1024] = {0};
-    while(true){
+    while(!shouldClose){
         read(socket, line, 1024 - 1);
+        if(strcmp(line, "exit") == 0){
+            break;
+        }
         std::cout << formatMessage(line) << std::endl;
         memset(line, 0, sizeof(line));
     }
 }
 void writeToSocket(int socket){
     std::string line;
-    while(true){
+    while(!shouldClose){
         getline(std::cin, line);
         send(socket, line.c_str(), strlen(line.c_str()), 0);
         std::cin.clear();
         std::cout << "\033[A";
+        if(line.compare("exit") == 0) {
+            shouldClose = true;
+            continue;
+        }
     }
 }
 std::string formatMessage(const std::string& message){
